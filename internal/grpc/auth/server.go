@@ -1,8 +1,10 @@
-package auth
+package authgrpc
 
 import (
+	"auth-sso/internal/services/auth"
 	"auth-sso/lib/validation"
 	"context"
+	"errors"
 	authssov1 "github.com/alexprishmont/masters-protos/gen/go/auth-sso"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -10,9 +12,22 @@ import (
 	"log/slog"
 )
 
+type Auth interface {
+	Login(ctx context.Context,
+		email string,
+		password string,
+		appID int,
+	) (token string, err error)
+	RegisterNewUser(ctx context.Context,
+		email string,
+		password string,
+	) (userID string, err error)
+}
+
 type serverAPI struct {
 	authssov1.UnimplementedAuthServer
-	log *slog.Logger
+	log  *slog.Logger
+	auth Auth
 }
 
 type LoginRequest struct {
@@ -26,9 +41,10 @@ type RegisterRequest struct {
 	Password string `validate:"required,min=6"`
 }
 
-func Register(gRPC *grpc.Server, log *slog.Logger) {
+func Register(gRPC *grpc.Server, log *slog.Logger, auth Auth) {
 	authssov1.RegisterAuthServer(gRPC, &serverAPI{
-		log: log,
+		log:  log,
+		auth: auth,
 	})
 }
 
@@ -50,8 +66,18 @@ func (s *serverAPI) Login(
 
 	s.log.Info("User successfully signed in.", slog.Int("userID", 32), slog.Any("TraceID", traceID))
 
+	token, err := s.auth.Login(ctx, req.Email, req.Password, int(req.AppID))
+
+	if err != nil {
+		if errors.Is(err, auth.ErrorInvalidCredentials) {
+			return nil, status.Error(codes.InvalidArgument, "invalid credentials")
+		}
+
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
 	return &authssov1.LoginResponse{
-		Token: "Token",
+		Token: token,
 	}, nil
 }
 
@@ -68,7 +94,17 @@ func (s *serverAPI) Register(
 		return nil, status.Errorf(codes.InvalidArgument, "%v", errStr)
 	}
 
+	userID, err := s.auth.RegisterNewUser(ctx, req.Email, req.Password)
+
+	if err != nil {
+		if errors.Is(err, auth.ErrorUserExists) {
+			return nil, status.Error(codes.AlreadyExists, "user already exists")
+		}
+
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
 	return &authssov1.RegisterResponse{
-		UserId: 32,
+		UserId: userID,
 	}, nil
 }

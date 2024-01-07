@@ -15,7 +15,8 @@ type Config struct {
 }
 
 type DatabaseConfig struct {
-	Uri string `yaml:"uri" env-required:"true"`
+	Uri          string `yaml:"uri" env-required:"true"`
+	DatabaseName string `yaml:"databaseName" env-required:"true"`
 }
 
 type GRPCConfig struct {

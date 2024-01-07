@@ -1,0 +1,8 @@
+env: "local"
+token_ttl: 1h
+database:
+  uri: "mongodb://localhost:27017"
+  databaseName: "local-development"
+grpc:
+  port: 44044
+  timeout: 10h

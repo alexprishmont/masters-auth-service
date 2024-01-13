@@ -38,7 +38,7 @@ type AppProvider interface {
 var (
 	ErrorInvalidCredentials = errors.New("invalid credentials")
 	ErrorUserExists         = errors.New("user exists")
-	ErrorAppNotFound        = errors.New("wrong application ID")
+	ErrorAppNotFound        = errors.New("wrong application AppID")
 )
 
 // New returns a new instance of the Auth service
@@ -116,7 +116,7 @@ func (a *Auth) Login(
 	return token, nil
 }
 
-// RegisterNewUser registers new user in the system and returns user ID
+// RegisterNewUser registers new user in the system and returns user AppID
 // If user with given email address already exists, returns error.
 func (a *Auth) RegisterNewUser(
 	ctx context.Context,

@@ -1,12 +1,17 @@
 package validation
 
 import (
+	"auth-sso/lib/validation/rules/documenttype"
+	"auth-sso/lib/validation/rules/timestamp"
+	"auth-sso/lib/validation/rules/uuid"
 	"github.com/go-playground/validator/v10"
 	"strings"
 )
 
 func ValidateStruct(someStruct interface{}) string {
 	validate := validator.New()
+	validate = registerCustomValidators(validate)
+
 	var sb strings.Builder
 
 	err := validate.Struct(someStruct)
@@ -17,4 +22,12 @@ func ValidateStruct(someStruct interface{}) string {
 	}
 
 	return sb.String()
+}
+
+func registerCustomValidators(validator *validator.Validate) *validator.Validate {
+	validator.RegisterValidation("uuid", uuid.UuidValidator)
+	validator.RegisterValidation("documenttype", documenttype.DocumentTypeValidation)
+	validator.RegisterValidation("timestamp", timestamp.TimestampValidator)
+
+	return validator
 }

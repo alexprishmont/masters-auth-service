@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -57,8 +58,14 @@ func (s *Storage) Close(ctx context.Context) error {
 func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (uid string, err error) {
 	const op = "storage.mongodb.SaveUser"
 
+	uid = uuid.New().String()
+
 	collection := s.client.Database(s.database).Collection("users")
-	document := bson.D{{"email", email}, {"password", passHash}}
+	document := bson.D{
+		{"uniqueId", uid},
+		{"email", email},
+		{"passwordHash", passHash},
+	}
 
 	result, err := collection.InsertOne(ctx, document)
 	if err != nil {
@@ -74,11 +81,11 @@ func (s *Storage) SaveUser(ctx context.Context, email string, passHash []byte) (
 		return "", fmt.Errorf("%s: %w", op, err)
 	}
 
-	if oid, ok := result.InsertedID.(primitive.ObjectID); ok {
-		return oid.Hex(), nil
+	if _, ok := result.InsertedID.(primitive.ObjectID); ok {
+		return uid, nil
 	}
 
-	return "", fmt.Errorf("%s: failed to get inserted ID", op)
+	return "", fmt.Errorf("%s: failed to get inserted AppID", op)
 }
 
 func (s *Storage) User(ctx context.Context, email string) (models.User, error) {
@@ -105,7 +112,7 @@ func (s *Storage) App(ctx context.Context, appID int) (models.App, error) {
 	const op = "storage.mongodb.App"
 
 	collection := s.client.Database(s.database).Collection("apps")
-	filter := bson.M{"app_id": appID}
+	filter := bson.M{"appID": appID}
 
 	var user models.App
 

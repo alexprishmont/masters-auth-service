@@ -10,10 +10,10 @@ func NewToken(user models.User, app models.App, duration time.Duration) (string,
 	token := jwt.New(jwt.SigningMethodHS512)
 
 	claims := token.Claims.(jwt.MapClaims)
-	claims["uid"] = user.ID
+	claims["uid"] = user.UniqueId
 	claims["email"] = user.Email
 	claims["exp"] = time.Now().Add(duration).Unix()
-	claims["app_id"] = app.ID
+	claims["app_id"] = app.AppID
 
 	tokenString, err := token.SignedString([]byte(app.Secret))
 	if err != nil {

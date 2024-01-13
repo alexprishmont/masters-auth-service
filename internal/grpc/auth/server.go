@@ -52,8 +52,6 @@ func (s *serverAPI) Login(
 	ctx context.Context,
 	request *authssov1.LoginRequest,
 ) (*authssov1.LoginResponse, error) {
-	traceID := ctx.Value("TraceID")
-
 	req := LoginRequest{
 		Email:    request.GetEmail(),
 		Password: request.GetPassword(),
@@ -63,8 +61,6 @@ func (s *serverAPI) Login(
 	if errStr := validation.ValidateStruct(req); errStr != "" {
 		return nil, status.Errorf(codes.InvalidArgument, "%v", errStr)
 	}
-
-	s.log.Info("User successfully signed in.", slog.Int("userID", 32), slog.Any("TraceID", traceID))
 
 	token, err := s.auth.Login(ctx, req.Email, req.Password, int(req.AppID))
 

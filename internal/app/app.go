@@ -3,6 +3,7 @@ package app
 import (
 	grpcapp "auth-sso/internal/app/grpc"
 	"auth-sso/internal/services/auth"
+	"auth-sso/internal/services/identity"
 	"auth-sso/internal/storage/mongodb"
 	"log/slog"
 	"time"
@@ -28,7 +29,8 @@ func New(
 	log.Info("MongoDB connection is successful.")
 
 	authService := auth.New(log, client, client, client, tokenTTL)
-	grpcApp := grpcapp.New(log, authService, grpcPort)
+	identityService := identity.New(log)
+	grpcApp := grpcapp.New(log, authService, identityService, grpcPort)
 
 	return &App{
 		GRPCServer: grpcApp,

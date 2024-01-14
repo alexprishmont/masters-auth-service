@@ -18,7 +18,6 @@ type Verification interface {
 	StartValidation(ctx context.Context,
 		userId string,
 		documentType string,
-		initiationTimestamp *timestamp.Timestamp,
 	) (response ValidationResponse, err error)
 	Status(ctx context.Context,
 		validationId string,
@@ -41,14 +40,13 @@ type Verification interface {
 }
 
 type ValidationRequest struct {
-	UserId              string                              `validate:"required,uuid"`
-	DocumentType        identityverificationv1.DocumentType `validate:"required,documenttype"`
-	InitiationTimestamp *timestamp.Timestamp                `validate:"required, timestamp"`
+	UserId       string                              `validate:"required,uuid"`
+	DocumentType identityverificationv1.DocumentType `validate:"required"`
 }
 
 type ValidationResponse struct {
 	ValidationId string
-	Status       string
+	Status       identityverificationv1.Status
 	Message      string
 }
 
@@ -57,7 +55,7 @@ type StatusRequest struct {
 }
 
 type StatusResponse struct {
-	Status      string
+	Status      identityverificationv1.Status
 	LastUpdated *timestamp.Timestamp
 	Message     string
 }
@@ -69,7 +67,7 @@ type DocumentUploadRequest struct {
 }
 
 type DocumentUploadResponse struct {
-	UploadStatus string
+	UploadStatus identityverificationv1.Status
 	Message      string
 }
 
@@ -78,7 +76,7 @@ type EndValidationRequest struct {
 }
 
 type EndValidationResponse struct {
-	FinalStatus string
+	FinalStatus identityverificationv1.Status
 	Message     string
 }
 
@@ -88,7 +86,7 @@ type UpdateValidationRequest struct {
 }
 
 type UpdateValidationResponse struct {
-	UpdateStatus string
+	UpdateStatus identityverificationv1.Status
 	Message      string
 }
 
@@ -97,7 +95,7 @@ type CancelValidationRequest struct {
 }
 
 type CancelValidationResponse struct {
-	CancellationStatus string
+	CancellationStatus identityverificationv1.Status
 	Message            string
 }
 
@@ -125,16 +123,15 @@ func (s *serverAPI) StartValidation(
 	request *identityverificationv1.ValidationRequest,
 ) (*identityverificationv1.ValidationResponse, error) {
 	req := ValidationRequest{
-		UserId:              request.GetUserId(),
-		DocumentType:        request.GetDocumentType(),
-		InitiationTimestamp: request.GetInitiationTimestamp(),
+		UserId:       request.GetUserId(),
+		DocumentType: request.GetDocumentType(),
 	}
 
 	if errStr := validation.ValidateStruct(req); errStr != "" {
 		return nil, status.Errorf(codes.InvalidArgument, "%v", errStr)
 	}
 
-	response, err := s.identityVerification.StartValidation(ctx, req.UserId, string(req.DocumentType), req.InitiationTimestamp)
+	response, err := s.identityVerification.StartValidation(ctx, req.UserId, string(req.DocumentType))
 
 	if err != nil {
 		// TODO: Handle error

@@ -6,3 +6,5 @@ database:
 grpc:
   port: 44044
   timeout: 10h
+redis:
+  address: "127.0.0.1:6379"

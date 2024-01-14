@@ -11,6 +11,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"time"
 )
 
 const (
@@ -126,4 +127,60 @@ func (s *Storage) App(ctx context.Context, appID int) (models.App, error) {
 	}
 
 	return user, nil
+}
+
+func (s *Storage) UserById(ctx context.Context, id string) (models.User, error) {
+	const op = "storage.mongodb.UserById"
+
+	collection := s.client.Database(s.database).Collection("users")
+	filter := bson.M{"uniqueId": id}
+
+	var user models.User
+
+	err := collection.FindOne(ctx, filter).Decode(&user)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return models.User{}, fmt.Errorf("%s: %w", op, storage.ErrorUserNotFound)
+		}
+
+		return models.User{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return user, nil
+}
+
+func (s *Storage) CreateNewValidation(ctx context.Context,
+	user models.User,
+	documentType string,
+) (string, error) {
+	const op = "storage.mongodb.CreateNewValidation"
+
+	uid := uuid.New().String()
+	now := time.Now()
+
+	collection := s.client.Database(s.database).Collection("validations")
+	document := bson.D{
+		{"verificationId", uid},
+		{"user", user},
+		{"documentType", documentType},
+		{"status", "pending"},
+		{"createdAt", now},
+		{"updatedAt", now},
+	}
+
+	_, err := collection.InsertOne(ctx, document)
+	if err != nil {
+		var writeErr mongo.WriteException
+		if errors.As(err, &writeErr) {
+			for _, e := range writeErr.WriteErrors {
+				if e.Code == duplicateKeyError {
+					return "", fmt.Errorf("%s: %w", op, storage.ErrorUserExists)
+				}
+			}
+		}
+
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	return uid, nil
 }

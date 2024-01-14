@@ -12,6 +12,7 @@ type Config struct {
 	TokenTTL time.Duration `yaml:"token_ttl" env-required:"true"`
 	Database DatabaseConfig
 	GRPC     GRPCConfig
+	Redis    RedisConfig
 }
 
 type DatabaseConfig struct {
@@ -22,6 +23,10 @@ type DatabaseConfig struct {
 type GRPCConfig struct {
 	Port    int           `yaml:"port" env-default:"44044"`
 	Timeout time.Duration `yaml:"timeout" env-default:"2h"`
+}
+
+type RedisConfig struct {
+	Address string `yaml:"address" env-default:"127.0.0.1"`
 }
 
 func MustLoad() *Config {

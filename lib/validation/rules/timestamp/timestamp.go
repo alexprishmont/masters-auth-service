@@ -5,7 +5,7 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-func TimestampValidator(fl validator.FieldLevel) bool {
+func Validate(fl validator.FieldLevel) bool {
 	ts, ok := fl.Field().Interface().(*timestamppb.Timestamp)
 	if !ok || ts == nil {
 		return false

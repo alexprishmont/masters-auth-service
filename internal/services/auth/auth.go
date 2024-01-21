@@ -13,11 +13,12 @@ import (
 )
 
 type Auth struct {
-	log          *slog.Logger
-	userSaver    UserSaver
-	userProvider UserProvider
-	appProvider  AppProvider
-	tokenTTL     time.Duration
+	log                *slog.Logger
+	userSaver          UserSaver
+	userProvider       UserProvider
+	appProvider        AppProvider
+	permissionProvider PermissionProvider
+	tokenTTL           time.Duration
 }
 
 type UserSaver interface {
@@ -35,10 +36,15 @@ type AppProvider interface {
 	App(ctx context.Context, appID int) (models.App, error)
 }
 
+type PermissionProvider interface {
+	Can(ctx context.Context, permission string, userId string) (bool, error)
+}
+
 var (
 	ErrorInvalidCredentials = errors.New("invalid credentials")
 	ErrorUserExists         = errors.New("user exists")
 	ErrorAppNotFound        = errors.New("wrong application AppID")
+	ErrorUserNotAuthorized  = errors.New("user action is not authorized")
 )
 
 // New returns a new instance of the Auth service
@@ -47,14 +53,16 @@ func New(
 	userSaver UserSaver,
 	userProvider UserProvider,
 	appProvider AppProvider,
+	permissionProvider PermissionProvider,
 	tokenTTL time.Duration,
 ) *Auth {
 	return &Auth{
-		log:          log,
-		userSaver:    userSaver,
-		userProvider: userProvider,
-		appProvider:  appProvider,
-		tokenTTL:     tokenTTL,
+		log:                log,
+		userSaver:          userSaver,
+		userProvider:       userProvider,
+		appProvider:        appProvider,
+		permissionProvider: permissionProvider,
+		tokenTTL:           tokenTTL,
 	}
 }
 
@@ -156,4 +164,24 @@ func (a *Auth) RegisterNewUser(
 	log.Info("User registered")
 
 	return id, nil
+}
+
+func (a *Auth) Authorize(ctx context.Context, permission string, userId string) (isAuthorized bool, err error) {
+	const op = "auth.Authorize"
+
+	log := a.log.With(
+		slog.String("op", op),
+	)
+
+	log.Info("Authorizing user action")
+
+	can, err := a.permissionProvider.Can(ctx, permission, userId)
+
+	if err != nil {
+		log.Error("failed to authorize user", slog.String("error", err.Error()))
+
+		return false, fmt.Errorf("%s: %w", op, ErrorUserNotAuthorized)
+	}
+
+	return can, nil
 }

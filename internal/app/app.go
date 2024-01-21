@@ -34,8 +34,8 @@ func New(
 	redisClient := asynq.RedisClientOpt{Addr: redisAddr}
 	asynqClient := asynq.NewClient(redisClient)
 
-	authService := auth.New(log, client, client, client, tokenTTL)
-	identityService := identity.New(log, asynqClient, client, client)
+	authService := auth.New(log, client, client, client, client, tokenTTL)
+	identityService := identity.New(log, asynqClient, client, client, client)
 	grpcApp := grpcapp.New(log, authService, identityService, grpcPort)
 
 	return &App{

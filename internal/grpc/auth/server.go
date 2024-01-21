@@ -22,6 +22,10 @@ type Auth interface {
 		email string,
 		password string,
 	) (userID string, err error)
+	Authorize(ctx context.Context,
+		permission string,
+		userId string,
+	) (isAuthorized bool, err error)
 }
 
 type serverAPI struct {
@@ -39,6 +43,11 @@ type LoginRequest struct {
 type RegisterRequest struct {
 	Email    string `validate:"required,email"`
 	Password string `validate:"required,min=6"`
+}
+
+type AuthorizeRequest struct {
+	Permission string `validate:"required"`
+	UserId     string `validate:"required"`
 }
 
 func Register(gRPC *grpc.Server, log *slog.Logger, auth Auth) {
@@ -102,5 +111,35 @@ func (s *serverAPI) Register(
 
 	return &authssov1.RegisterResponse{
 		UserId: userID,
+	}, nil
+}
+
+func (s *serverAPI) Authorize(
+	ctx context.Context,
+	request *authssov1.AuthorizeRequest,
+) (*authssov1.AuthorizeResponse, error) {
+	req := AuthorizeRequest{
+		Permission: request.GetPermission(),
+		UserId:     request.GetUserId(),
+	}
+
+	if errStr := validation.ValidateStruct(req); errStr != "" {
+		return nil, status.Errorf(codes.InvalidArgument, "%v", errStr)
+	}
+
+	isAuthorized, err := s.auth.Authorize(ctx, req.Permission, req.UserId)
+
+	if err != nil {
+		if errors.Is(err, auth.ErrorUserNotAuthorized) {
+			return nil, status.Error(codes.Unauthenticated, "Unauthorized action")
+		}
+
+		return nil, status.Error(codes.Internal, "internal error")
+	}
+
+	return &authssov1.AuthorizeResponse{
+		Can:        isAuthorized,
+		UserId:     req.UserId,
+		Permission: req.Permission,
 	}, nil
 }

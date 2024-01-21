@@ -6,6 +6,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	identityverificationv1 "github.com/alexprishmont/masters-protos/gen/go/identityverification"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -163,7 +164,7 @@ func (s *Storage) CreateNewValidation(ctx context.Context,
 		{"verificationId", uid},
 		{"user", user},
 		{"documentType", documentType},
-		{"status", "pending"},
+		{"status", identityverificationv1.Status_PENDING},
 		{"createdAt", now},
 		{"updatedAt", now},
 	}
@@ -183,4 +184,67 @@ func (s *Storage) CreateNewValidation(ctx context.Context,
 	}
 
 	return uid, nil
+}
+
+func (s *Storage) DoesValidationExist(ctx context.Context, userId string) (bool, error) {
+	const op = "storage.mongodb.DoesValidationExist"
+
+	collection := s.client.Database(s.database).Collection("validations")
+	filter := bson.M{"user.uniqueId": userId}
+
+	projection := bson.M{"_id": 1}
+
+	var result struct {
+		ID string `bson:"_id"`
+	}
+
+	err := collection.FindOne(ctx, filter, options.FindOne().SetProjection(projection)).Decode(&result)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return true, nil
+}
+
+func (s *Storage) Validation(ctx context.Context, id string) (models.IdentityValidation, error) {
+	const op = "storage.mongodb.Validation"
+
+	collection := s.client.Database(s.database).Collection("validations")
+	filter := bson.M{"validationId": id}
+
+	var result models.IdentityValidation
+
+	err := collection.FindOne(ctx, filter).Decode(&result)
+
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return models.IdentityValidation{}, nil
+		}
+		return models.IdentityValidation{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return result, nil
+}
+
+func (s *Storage) Can(ctx context.Context, permission string, userId string) (bool, error) {
+	const op = "storage.mongodb.Can"
+
+	collection := s.client.Database(s.database).Collection("users")
+	filter := bson.M{"uniqueId": userId, "permissions.name": permission}
+
+	var result models.User
+
+	err := collection.FindOne(ctx, filter).Decode(&result)
+
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return false, nil
+		}
+		return false, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return true, nil
 }

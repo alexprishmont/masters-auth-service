@@ -51,7 +51,7 @@ type ValidationResponse struct {
 }
 
 type StatusRequest struct {
-	ValidationId string `validate:"required,string,uuid"`
+	ValidationId string `validate:"required,uuid"`
 }
 
 type StatusResponse struct {
@@ -61,9 +61,9 @@ type StatusResponse struct {
 }
 
 type DocumentUploadRequest struct {
-	ValidationId   string `validate:"required,string,uuid"`
+	ValidationId   string `validate:"required,uuid"`
 	Document       []byte `validate:"required"`
-	DocumentFormat string `validate:"required,string"`
+	DocumentFormat string `validate:"required"`
 }
 
 type DocumentUploadResponse struct {
@@ -72,7 +72,7 @@ type DocumentUploadResponse struct {
 }
 
 type EndValidationRequest struct {
-	ValidationId string `validate:"required,string,uuid"`
+	ValidationId string `validate:"required,uuid"`
 }
 
 type EndValidationResponse struct {
@@ -81,8 +81,8 @@ type EndValidationResponse struct {
 }
 
 type UpdateValidationRequest struct {
-	ValidationId       string `validate:"required,string,uuid"`
-	UpdatedInformation string `validate:"required,string"`
+	ValidationId       string `validate:"required,uuid"`
+	UpdatedInformation string `validate:"required"`
 }
 
 type UpdateValidationResponse struct {
@@ -91,7 +91,7 @@ type UpdateValidationResponse struct {
 }
 
 type CancelValidationRequest struct {
-	ValidationId string `validate:"required,string,uuid"`
+	ValidationId string `validate:"required,uuid"`
 }
 
 type CancelValidationResponse struct {
@@ -131,7 +131,7 @@ func (s *serverAPI) StartValidation(
 		return nil, status.Errorf(codes.InvalidArgument, "%v", errStr)
 	}
 
-	response, err := s.identityVerification.StartValidation(ctx, req.UserId, string(req.DocumentType))
+	response, err := s.identityVerification.StartValidation(ctx, req.UserId, req.DocumentType.String())
 
 	if err != nil {
 		// TODO: Handle error
@@ -140,7 +140,7 @@ func (s *serverAPI) StartValidation(
 
 	return &identityverificationv1.ValidationResponse{
 		ValidationId: response.ValidationId,
-		Status:       response.Status,
+		Status:       response.Status.String(),
 		Message:      response.Message,
 	}, nil
 }
@@ -165,7 +165,7 @@ func (s *serverAPI) Status(
 	}
 
 	return &identityverificationv1.StatusResponse{
-		Status:      response.Status,
+		Status:      response.Status.String(),
 		LastUpdated: response.LastUpdated,
 		Message:     response.Message,
 	}, nil
@@ -193,7 +193,7 @@ func (s *serverAPI) DocumentUpload(
 	}
 
 	return &identityverificationv1.DocumentUploadResponse{
-		UploadStatus: response.UploadStatus,
+		UploadStatus: response.UploadStatus.String(),
 		Message:      response.Message,
 	}, nil
 }
@@ -218,7 +218,7 @@ func (s *serverAPI) EndValidation(
 	}
 
 	return &identityverificationv1.EndValidationResponse{
-		FinalStatus: response.FinalStatus,
+		FinalStatus: response.FinalStatus.String(),
 		Message:     response.Message,
 	}, nil
 }
@@ -250,7 +250,7 @@ func (s *serverAPI) UpdateValidation(
 	}
 
 	return &identityverificationv1.UpdateValidationResponse{
-		UpdateStatus: response.UpdateStatus,
+		UpdateStatus: response.UpdateStatus.String(),
 		Message:      response.Message,
 	}, nil
 }
@@ -275,7 +275,7 @@ func (s *serverAPI) CancelValidation(
 	}
 
 	return &identityverificationv1.CancelValidationResponse{
-		CancellationStatus: response.CancellationStatus,
+		CancellationStatus: response.CancellationStatus.String(),
 		Message:            response.Message,
 	}, nil
 }

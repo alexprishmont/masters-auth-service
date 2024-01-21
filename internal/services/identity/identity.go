@@ -11,14 +11,16 @@ import (
 	"fmt"
 	identityverificationv1 "github.com/alexprishmont/masters-protos/gen/go/identityverification"
 	"github.com/hibiken/asynq"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"log/slog"
 )
 
 type Verification struct {
-	log             *slog.Logger
-	asynqClient     *asynq.Client
-	userProvider    UserProvider
-	validationSaver ValidationSaver
+	log                *slog.Logger
+	asynqClient        *asynq.Client
+	userProvider       UserProvider
+	validationSaver    ValidationSaver
+	validationProvider ValidationProvider
 }
 
 type ValidationSaver interface {
@@ -32,6 +34,11 @@ type UserProvider interface {
 	UserById(ctx context.Context, id string) (models.User, error)
 }
 
+type ValidationProvider interface {
+	Validation(ctx context.Context, id string) (models.IdentityValidation, error)
+	DoesValidationExist(ctx context.Context, userId string) (bool, error)
+}
+
 var (
 	ErrorInvalidUserId = errors.New("invalid user id")
 )
@@ -41,12 +48,14 @@ func New(
 	asynqClient *asynq.Client,
 	userProvider UserProvider,
 	validationSaver ValidationSaver,
+	validationProvider ValidationProvider,
 ) *Verification {
 	return &Verification{
-		log:             log,
-		asynqClient:     asynqClient,
-		userProvider:    userProvider,
-		validationSaver: validationSaver,
+		log:                log,
+		asynqClient:        asynqClient,
+		userProvider:       userProvider,
+		validationSaver:    validationSaver,
+		validationProvider: validationProvider,
 	}
 }
 
@@ -76,6 +85,14 @@ func (v *Verification) StartValidation(
 		}
 
 		v.log.Error("failed to get user", slog.String("error", err.Error()))
+
+		return identitygrpc.ValidationResponse{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	exists, err := v.validationProvider.DoesValidationExist(ctx, user.UniqueId)
+
+	if exists && err == nil {
+		v.log.Error("validation already exists for the user", slog.String("user", user.UniqueId))
 
 		return identitygrpc.ValidationResponse{}, fmt.Errorf("%s: %w", op, err)
 	}
@@ -115,9 +132,30 @@ func (v *Verification) StartValidation(
 }
 
 func (v *Verification) Status(
-	ctx context.Context, validationId string) (identitygrpc.StatusResponse, error) {
+	ctx context.Context,
+	validationId string,
+) (identitygrpc.StatusResponse, error) {
+	const op = "identity.Status"
 
-	return identitygrpc.StatusResponse{}, nil
+	log := v.log.With(
+		slog.String("op", op),
+	)
+
+	log.Info("receiving identity validation status")
+
+	validation, err := v.validationProvider.Validation(ctx, validationId)
+
+	if err != nil {
+		log.Error("Failed to retrieve validation object.", slog.String("error", err.Error()))
+
+		return identitygrpc.StatusResponse{}, fmt.Errorf("%s: %w", op, err)
+	}
+
+	return identitygrpc.StatusResponse{
+		Status:      validation.Status,
+		LastUpdated: timestamppb.New(validation.UpdatedAt),
+		Message:     "OK, validation status.",
+	}, nil
 }
 
 func (v *Verification) DocumentUpload(

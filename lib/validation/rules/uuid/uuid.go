@@ -5,7 +5,7 @@ import (
 	"github.com/google/uuid"
 )
 
-func UuidValidator(fl validator.FieldLevel) bool {
+func Validate(fl validator.FieldLevel) bool {
 	_, err := uuid.Parse(fl.Field().String())
 
 	return err == nil

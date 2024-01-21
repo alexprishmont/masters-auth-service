@@ -6,10 +6,10 @@ import (
 )
 
 type IdentityValidation struct {
-	ValidationId string
-	User         User
-	DocumentType identityverificationv1.DocumentType
-	Status       identityverificationv1.Status
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ValidationId string                              `bson:"validationId"`
+	User         User                                `bson:"user"`
+	DocumentType identityverificationv1.DocumentType `bson:"documentType"`
+	Status       identityverificationv1.Status       `bson:"status"`
+	CreatedAt    time.Time                           `bson:"createdAt"`
+	UpdatedAt    time.Time                           `bson:"updatedAt"`
 }

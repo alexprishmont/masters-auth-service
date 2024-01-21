@@ -8,7 +8,7 @@ var allowedDocumentTypes = map[string]bool{
 	"NATIONAL_ID":    true,
 }
 
-func TypeValidation(fl validator.FieldLevel) bool {
+func Validate(fl validator.FieldLevel) bool {
 	docType := fl.Field().String()
 	_, exists := allowedDocumentTypes[docType]
 

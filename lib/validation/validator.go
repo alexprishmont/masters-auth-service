@@ -25,9 +25,9 @@ func ValidateStruct(someStruct interface{}) string {
 }
 
 func registerCustomValidators(validator *validator.Validate) *validator.Validate {
-	validator.RegisterValidation("uuid", uuid.UuidValidator)
-	validator.RegisterValidation("documenttype", documenttype.TypeValidation)
-	validator.RegisterValidation("timestamp", timestamp.TimestampValidator)
+	validator.RegisterValidation("uuid", uuid.Validate)
+	validator.RegisterValidation("documenttype", documenttype.Validate)
+	validator.RegisterValidation("timestamp", timestamp.Validate)
 
 	return validator
 }

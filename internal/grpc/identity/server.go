@@ -5,10 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	identityverificationv1 "github.com/alexprishmont/masters-protos/gen/go/identityverification"
-	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	"log/slog"
 )
 
@@ -56,7 +56,7 @@ type StatusRequest struct {
 
 type StatusResponse struct {
 	Status      identityverificationv1.Status
-	LastUpdated *timestamp.Timestamp
+	LastUpdated *timestamppb.Timestamp
 	Message     string
 }
 

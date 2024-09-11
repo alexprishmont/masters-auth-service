@@ -3,7 +3,7 @@ package models
 type User struct {
 	UniqueId     string       `bson:"uniqueId"`
 	Email        string       `bson:"email"`
-	PasswordHash []byte       `bson:"-"`
+	PasswordHash []byte       `bson:"passwordHash"`
 	Permissions  []Permission `bson:"permissions"`
 }
 
